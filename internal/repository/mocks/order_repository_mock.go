@@ -2,10 +2,11 @@
 
 package mocks
 
-//go:generate minimock -i application-design-test/internal/repository.OrderRepository -o order_repository_mock.go -n OrderRepositoryMock -p mocks
+//go:generate minimock -i application-design-test/internal/service.OrderRepository -o order_repository_mock.go -n OrderRepositoryMock -p mocks
 
 import (
 	"application-design-test/internal/model"
+	"context"
 	"sync"
 	mm_atomic "sync/atomic"
 	mm_time "time"
@@ -13,20 +14,20 @@ import (
 	"github.com/gojuno/minimock/v3"
 )
 
-// OrderRepositoryMock implements mm_repository.OrderRepository
+// OrderRepositoryMock implements mm_service.OrderRepository
 type OrderRepositoryMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
-	funcSaveOrder          func(order *model.Order) (err error)
+	funcSaveOrder          func(ctx context.Context, order *model.Order) (err error)
 	funcSaveOrderOrigin    string
-	inspectFuncSaveOrder   func(order *model.Order)
+	inspectFuncSaveOrder   func(ctx context.Context, order *model.Order)
 	afterSaveOrderCounter  uint64
 	beforeSaveOrderCounter uint64
 	SaveOrderMock          mOrderRepositoryMockSaveOrder
 }
 
-// NewOrderRepositoryMock returns a mock for mm_repository.OrderRepository
+// NewOrderRepositoryMock returns a mock for mm_service.OrderRepository
 func NewOrderRepositoryMock(t minimock.Tester) *OrderRepositoryMock {
 	m := &OrderRepositoryMock{t: t}
 
@@ -68,11 +69,13 @@ type OrderRepositoryMockSaveOrderExpectation struct {
 
 // OrderRepositoryMockSaveOrderParams contains parameters of the OrderRepository.SaveOrder
 type OrderRepositoryMockSaveOrderParams struct {
+	ctx   context.Context
 	order *model.Order
 }
 
 // OrderRepositoryMockSaveOrderParamPtrs contains pointers to parameters of the OrderRepository.SaveOrder
 type OrderRepositoryMockSaveOrderParamPtrs struct {
+	ctx   *context.Context
 	order **model.Order
 }
 
@@ -84,6 +87,7 @@ type OrderRepositoryMockSaveOrderResults struct {
 // OrderRepositoryMockSaveOrderOrigins contains origins of expectations of the OrderRepository.SaveOrder
 type OrderRepositoryMockSaveOrderExpectationOrigins struct {
 	origin      string
+	originCtx   string
 	originOrder string
 }
 
@@ -98,7 +102,7 @@ func (mmSaveOrder *mOrderRepositoryMockSaveOrder) Optional() *mOrderRepositoryMo
 }
 
 // Expect sets up expected params for OrderRepository.SaveOrder
-func (mmSaveOrder *mOrderRepositoryMockSaveOrder) Expect(order *model.Order) *mOrderRepositoryMockSaveOrder {
+func (mmSaveOrder *mOrderRepositoryMockSaveOrder) Expect(ctx context.Context, order *model.Order) *mOrderRepositoryMockSaveOrder {
 	if mmSaveOrder.mock.funcSaveOrder != nil {
 		mmSaveOrder.mock.t.Fatalf("OrderRepositoryMock.SaveOrder mock is already set by Set")
 	}
@@ -111,7 +115,7 @@ func (mmSaveOrder *mOrderRepositoryMockSaveOrder) Expect(order *model.Order) *mO
 		mmSaveOrder.mock.t.Fatalf("OrderRepositoryMock.SaveOrder mock is already set by ExpectParams functions")
 	}
 
-	mmSaveOrder.defaultExpectation.params = &OrderRepositoryMockSaveOrderParams{order}
+	mmSaveOrder.defaultExpectation.params = &OrderRepositoryMockSaveOrderParams{ctx, order}
 	mmSaveOrder.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmSaveOrder.expectations {
 		if minimock.Equal(e.params, mmSaveOrder.defaultExpectation.params) {
@@ -122,8 +126,31 @@ func (mmSaveOrder *mOrderRepositoryMockSaveOrder) Expect(order *model.Order) *mO
 	return mmSaveOrder
 }
 
-// ExpectOrderParam1 sets up expected param order for OrderRepository.SaveOrder
-func (mmSaveOrder *mOrderRepositoryMockSaveOrder) ExpectOrderParam1(order *model.Order) *mOrderRepositoryMockSaveOrder {
+// ExpectCtxParam1 sets up expected param ctx for OrderRepository.SaveOrder
+func (mmSaveOrder *mOrderRepositoryMockSaveOrder) ExpectCtxParam1(ctx context.Context) *mOrderRepositoryMockSaveOrder {
+	if mmSaveOrder.mock.funcSaveOrder != nil {
+		mmSaveOrder.mock.t.Fatalf("OrderRepositoryMock.SaveOrder mock is already set by Set")
+	}
+
+	if mmSaveOrder.defaultExpectation == nil {
+		mmSaveOrder.defaultExpectation = &OrderRepositoryMockSaveOrderExpectation{}
+	}
+
+	if mmSaveOrder.defaultExpectation.params != nil {
+		mmSaveOrder.mock.t.Fatalf("OrderRepositoryMock.SaveOrder mock is already set by Expect")
+	}
+
+	if mmSaveOrder.defaultExpectation.paramPtrs == nil {
+		mmSaveOrder.defaultExpectation.paramPtrs = &OrderRepositoryMockSaveOrderParamPtrs{}
+	}
+	mmSaveOrder.defaultExpectation.paramPtrs.ctx = &ctx
+	mmSaveOrder.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmSaveOrder
+}
+
+// ExpectOrderParam2 sets up expected param order for OrderRepository.SaveOrder
+func (mmSaveOrder *mOrderRepositoryMockSaveOrder) ExpectOrderParam2(order *model.Order) *mOrderRepositoryMockSaveOrder {
 	if mmSaveOrder.mock.funcSaveOrder != nil {
 		mmSaveOrder.mock.t.Fatalf("OrderRepositoryMock.SaveOrder mock is already set by Set")
 	}
@@ -146,7 +173,7 @@ func (mmSaveOrder *mOrderRepositoryMockSaveOrder) ExpectOrderParam1(order *model
 }
 
 // Inspect accepts an inspector function that has same arguments as the OrderRepository.SaveOrder
-func (mmSaveOrder *mOrderRepositoryMockSaveOrder) Inspect(f func(order *model.Order)) *mOrderRepositoryMockSaveOrder {
+func (mmSaveOrder *mOrderRepositoryMockSaveOrder) Inspect(f func(ctx context.Context, order *model.Order)) *mOrderRepositoryMockSaveOrder {
 	if mmSaveOrder.mock.inspectFuncSaveOrder != nil {
 		mmSaveOrder.mock.t.Fatalf("Inspect function is already set for OrderRepositoryMock.SaveOrder")
 	}
@@ -171,7 +198,7 @@ func (mmSaveOrder *mOrderRepositoryMockSaveOrder) Return(err error) *OrderReposi
 }
 
 // Set uses given function f to mock the OrderRepository.SaveOrder method
-func (mmSaveOrder *mOrderRepositoryMockSaveOrder) Set(f func(order *model.Order) (err error)) *OrderRepositoryMock {
+func (mmSaveOrder *mOrderRepositoryMockSaveOrder) Set(f func(ctx context.Context, order *model.Order) (err error)) *OrderRepositoryMock {
 	if mmSaveOrder.defaultExpectation != nil {
 		mmSaveOrder.mock.t.Fatalf("Default expectation is already set for the OrderRepository.SaveOrder method")
 	}
@@ -187,14 +214,14 @@ func (mmSaveOrder *mOrderRepositoryMockSaveOrder) Set(f func(order *model.Order)
 
 // When sets expectation for the OrderRepository.SaveOrder which will trigger the result defined by the following
 // Then helper
-func (mmSaveOrder *mOrderRepositoryMockSaveOrder) When(order *model.Order) *OrderRepositoryMockSaveOrderExpectation {
+func (mmSaveOrder *mOrderRepositoryMockSaveOrder) When(ctx context.Context, order *model.Order) *OrderRepositoryMockSaveOrderExpectation {
 	if mmSaveOrder.mock.funcSaveOrder != nil {
 		mmSaveOrder.mock.t.Fatalf("OrderRepositoryMock.SaveOrder mock is already set by Set")
 	}
 
 	expectation := &OrderRepositoryMockSaveOrderExpectation{
 		mock:               mmSaveOrder.mock,
-		params:             &OrderRepositoryMockSaveOrderParams{order},
+		params:             &OrderRepositoryMockSaveOrderParams{ctx, order},
 		expectationOrigins: OrderRepositoryMockSaveOrderExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmSaveOrder.expectations = append(mmSaveOrder.expectations, expectation)
@@ -228,18 +255,18 @@ func (mmSaveOrder *mOrderRepositoryMockSaveOrder) invocationsDone() bool {
 	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
 }
 
-// SaveOrder implements mm_repository.OrderRepository
-func (mmSaveOrder *OrderRepositoryMock) SaveOrder(order *model.Order) (err error) {
+// SaveOrder implements mm_service.OrderRepository
+func (mmSaveOrder *OrderRepositoryMock) SaveOrder(ctx context.Context, order *model.Order) (err error) {
 	mm_atomic.AddUint64(&mmSaveOrder.beforeSaveOrderCounter, 1)
 	defer mm_atomic.AddUint64(&mmSaveOrder.afterSaveOrderCounter, 1)
 
 	mmSaveOrder.t.Helper()
 
 	if mmSaveOrder.inspectFuncSaveOrder != nil {
-		mmSaveOrder.inspectFuncSaveOrder(order)
+		mmSaveOrder.inspectFuncSaveOrder(ctx, order)
 	}
 
-	mm_params := OrderRepositoryMockSaveOrderParams{order}
+	mm_params := OrderRepositoryMockSaveOrderParams{ctx, order}
 
 	// Record call args
 	mmSaveOrder.SaveOrderMock.mutex.Lock()
@@ -258,9 +285,14 @@ func (mmSaveOrder *OrderRepositoryMock) SaveOrder(order *model.Order) (err error
 		mm_want := mmSaveOrder.SaveOrderMock.defaultExpectation.params
 		mm_want_ptrs := mmSaveOrder.SaveOrderMock.defaultExpectation.paramPtrs
 
-		mm_got := OrderRepositoryMockSaveOrderParams{order}
+		mm_got := OrderRepositoryMockSaveOrderParams{ctx, order}
 
 		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmSaveOrder.t.Errorf("OrderRepositoryMock.SaveOrder got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmSaveOrder.SaveOrderMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
 
 			if mm_want_ptrs.order != nil && !minimock.Equal(*mm_want_ptrs.order, mm_got.order) {
 				mmSaveOrder.t.Errorf("OrderRepositoryMock.SaveOrder got unexpected parameter order, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
@@ -279,9 +311,9 @@ func (mmSaveOrder *OrderRepositoryMock) SaveOrder(order *model.Order) (err error
 		return (*mm_results).err
 	}
 	if mmSaveOrder.funcSaveOrder != nil {
-		return mmSaveOrder.funcSaveOrder(order)
+		return mmSaveOrder.funcSaveOrder(ctx, order)
 	}
-	mmSaveOrder.t.Fatalf("Unexpected call to OrderRepositoryMock.SaveOrder. %v", order)
+	mmSaveOrder.t.Fatalf("Unexpected call to OrderRepositoryMock.SaveOrder. %v %v", ctx, order)
 	return
 }
 

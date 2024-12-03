@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -8,12 +9,12 @@ import (
 )
 
 type AvailabilityRepository interface {
-	GetRoomAvailability(hotelID, roomID string) (model.DateQuotaMap, error)
-	DecrementRoomQuota(hotelID, roomID string, date []time.Time) error
+	GetRoomAvailability(ctx context.Context, hotelID, roomID string) (model.DateQuotaMap, error)
+	DecrementRoomQuota(ctx context.Context, hotelID, roomID string, date []time.Time) error
 }
 
 type OrderRepository interface {
-	SaveOrder(order *model.Order) error
+	SaveOrder(ctx context.Context, order *model.Order) error
 }
 
 type BookingService struct {
@@ -28,8 +29,8 @@ func NewBookingService(orderRepo OrderRepository, availabilityRepo AvailabilityR
 	}
 }
 
-func (s *BookingService) CreateOrder(order *model.Order) error {
-	dateQuotaMap, err := s.availabilityRepo.GetRoomAvailability(order.HotelID, order.RoomID)
+func (s *BookingService) CreateOrder(ctx context.Context, order *model.Order) error {
+	dateQuotaMap, err := s.availabilityRepo.GetRoomAvailability(ctx, order.HotelID, order.RoomID)
 	if err != nil {
 		return fmt.Errorf("GetRoomAvailability error %v, %w", order, err)
 	}
@@ -41,11 +42,11 @@ func (s *BookingService) CreateOrder(order *model.Order) error {
 	}
 
 	//todo: здесь по хорошему нужна транзакция
-	if err := s.orderRepo.SaveOrder(order); err != nil {
+	if err := s.orderRepo.SaveOrder(ctx, order); err != nil {
 		return fmt.Errorf("SaveOrder error, order %v, %w", order, err)
 	}
 	bookingInterval := daysBetween(order.From, order.To)
-	if err := s.availabilityRepo.DecrementRoomQuota(order.HotelID, order.RoomID, bookingInterval); err != nil {
+	if err := s.availabilityRepo.DecrementRoomQuota(ctx, order.HotelID, order.RoomID, bookingInterval); err != nil {
 		return fmt.Errorf("DecrementRoomQuota error, order %v, %w", order, err)
 	}
 

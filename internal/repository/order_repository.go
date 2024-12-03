@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"sync"
 
 	"application-design-test/internal/model"
@@ -17,7 +18,7 @@ func NewInMemoryOrderRepository() *InMemoryOrderRepository {
 	}
 }
 
-func (repo *InMemoryOrderRepository) SaveOrder(order *model.Order) error {
+func (repo *InMemoryOrderRepository) SaveOrder(_ context.Context, order *model.Order) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 

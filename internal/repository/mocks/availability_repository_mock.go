@@ -2,10 +2,11 @@
 
 package mocks
 
-//go:generate minimock -i application-design-test/internal/repository.AvailabilityRepository -o availability_repository_mock.go -n AvailabilityRepositoryMock -p mocks
+//go:generate minimock -i application-design-test/internal/service.AvailabilityRepository -o availability_repository_mock.go -n AvailabilityRepositoryMock -p mocks
 
 import (
 	"application-design-test/internal/model"
+	"context"
 	"sync"
 	mm_atomic "sync/atomic"
 	"time"
@@ -14,27 +15,27 @@ import (
 	"github.com/gojuno/minimock/v3"
 )
 
-// AvailabilityRepositoryMock implements mm_repository.AvailabilityRepository
+// AvailabilityRepositoryMock implements mm_service.AvailabilityRepository
 type AvailabilityRepositoryMock struct {
 	t          minimock.Tester
 	finishOnce sync.Once
 
-	funcDecrementRoomQuota          func(hotelID string, roomID string, date []time.Time) (err error)
+	funcDecrementRoomQuota          func(ctx context.Context, hotelID string, roomID string, date []time.Time) (err error)
 	funcDecrementRoomQuotaOrigin    string
-	inspectFuncDecrementRoomQuota   func(hotelID string, roomID string, date []time.Time)
+	inspectFuncDecrementRoomQuota   func(ctx context.Context, hotelID string, roomID string, date []time.Time)
 	afterDecrementRoomQuotaCounter  uint64
 	beforeDecrementRoomQuotaCounter uint64
 	DecrementRoomQuotaMock          mAvailabilityRepositoryMockDecrementRoomQuota
 
-	funcGetRoomAvailability          func(hotelID string, roomID string) (d1 model.DateQuotaMap, err error)
+	funcGetRoomAvailability          func(ctx context.Context, hotelID string, roomID string) (d1 model.DateQuotaMap, err error)
 	funcGetRoomAvailabilityOrigin    string
-	inspectFuncGetRoomAvailability   func(hotelID string, roomID string)
+	inspectFuncGetRoomAvailability   func(ctx context.Context, hotelID string, roomID string)
 	afterGetRoomAvailabilityCounter  uint64
 	beforeGetRoomAvailabilityCounter uint64
 	GetRoomAvailabilityMock          mAvailabilityRepositoryMockGetRoomAvailability
 }
 
-// NewAvailabilityRepositoryMock returns a mock for mm_repository.AvailabilityRepository
+// NewAvailabilityRepositoryMock returns a mock for mm_service.AvailabilityRepository
 func NewAvailabilityRepositoryMock(t minimock.Tester) *AvailabilityRepositoryMock {
 	m := &AvailabilityRepositoryMock{t: t}
 
@@ -79,6 +80,7 @@ type AvailabilityRepositoryMockDecrementRoomQuotaExpectation struct {
 
 // AvailabilityRepositoryMockDecrementRoomQuotaParams contains parameters of the AvailabilityRepository.DecrementRoomQuota
 type AvailabilityRepositoryMockDecrementRoomQuotaParams struct {
+	ctx     context.Context
 	hotelID string
 	roomID  string
 	date    []time.Time
@@ -86,6 +88,7 @@ type AvailabilityRepositoryMockDecrementRoomQuotaParams struct {
 
 // AvailabilityRepositoryMockDecrementRoomQuotaParamPtrs contains pointers to parameters of the AvailabilityRepository.DecrementRoomQuota
 type AvailabilityRepositoryMockDecrementRoomQuotaParamPtrs struct {
+	ctx     *context.Context
 	hotelID *string
 	roomID  *string
 	date    *[]time.Time
@@ -99,6 +102,7 @@ type AvailabilityRepositoryMockDecrementRoomQuotaResults struct {
 // AvailabilityRepositoryMockDecrementRoomQuotaOrigins contains origins of expectations of the AvailabilityRepository.DecrementRoomQuota
 type AvailabilityRepositoryMockDecrementRoomQuotaExpectationOrigins struct {
 	origin        string
+	originCtx     string
 	originHotelID string
 	originRoomID  string
 	originDate    string
@@ -115,7 +119,7 @@ func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Optio
 }
 
 // Expect sets up expected params for AvailabilityRepository.DecrementRoomQuota
-func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Expect(hotelID string, roomID string, date []time.Time) *mAvailabilityRepositoryMockDecrementRoomQuota {
+func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Expect(ctx context.Context, hotelID string, roomID string, date []time.Time) *mAvailabilityRepositoryMockDecrementRoomQuota {
 	if mmDecrementRoomQuota.mock.funcDecrementRoomQuota != nil {
 		mmDecrementRoomQuota.mock.t.Fatalf("AvailabilityRepositoryMock.DecrementRoomQuota mock is already set by Set")
 	}
@@ -128,7 +132,7 @@ func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Expec
 		mmDecrementRoomQuota.mock.t.Fatalf("AvailabilityRepositoryMock.DecrementRoomQuota mock is already set by ExpectParams functions")
 	}
 
-	mmDecrementRoomQuota.defaultExpectation.params = &AvailabilityRepositoryMockDecrementRoomQuotaParams{hotelID, roomID, date}
+	mmDecrementRoomQuota.defaultExpectation.params = &AvailabilityRepositoryMockDecrementRoomQuotaParams{ctx, hotelID, roomID, date}
 	mmDecrementRoomQuota.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmDecrementRoomQuota.expectations {
 		if minimock.Equal(e.params, mmDecrementRoomQuota.defaultExpectation.params) {
@@ -139,8 +143,31 @@ func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Expec
 	return mmDecrementRoomQuota
 }
 
-// ExpectHotelIDParam1 sets up expected param hotelID for AvailabilityRepository.DecrementRoomQuota
-func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) ExpectHotelIDParam1(hotelID string) *mAvailabilityRepositoryMockDecrementRoomQuota {
+// ExpectCtxParam1 sets up expected param ctx for AvailabilityRepository.DecrementRoomQuota
+func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) ExpectCtxParam1(ctx context.Context) *mAvailabilityRepositoryMockDecrementRoomQuota {
+	if mmDecrementRoomQuota.mock.funcDecrementRoomQuota != nil {
+		mmDecrementRoomQuota.mock.t.Fatalf("AvailabilityRepositoryMock.DecrementRoomQuota mock is already set by Set")
+	}
+
+	if mmDecrementRoomQuota.defaultExpectation == nil {
+		mmDecrementRoomQuota.defaultExpectation = &AvailabilityRepositoryMockDecrementRoomQuotaExpectation{}
+	}
+
+	if mmDecrementRoomQuota.defaultExpectation.params != nil {
+		mmDecrementRoomQuota.mock.t.Fatalf("AvailabilityRepositoryMock.DecrementRoomQuota mock is already set by Expect")
+	}
+
+	if mmDecrementRoomQuota.defaultExpectation.paramPtrs == nil {
+		mmDecrementRoomQuota.defaultExpectation.paramPtrs = &AvailabilityRepositoryMockDecrementRoomQuotaParamPtrs{}
+	}
+	mmDecrementRoomQuota.defaultExpectation.paramPtrs.ctx = &ctx
+	mmDecrementRoomQuota.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmDecrementRoomQuota
+}
+
+// ExpectHotelIDParam2 sets up expected param hotelID for AvailabilityRepository.DecrementRoomQuota
+func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) ExpectHotelIDParam2(hotelID string) *mAvailabilityRepositoryMockDecrementRoomQuota {
 	if mmDecrementRoomQuota.mock.funcDecrementRoomQuota != nil {
 		mmDecrementRoomQuota.mock.t.Fatalf("AvailabilityRepositoryMock.DecrementRoomQuota mock is already set by Set")
 	}
@@ -162,8 +189,8 @@ func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Expec
 	return mmDecrementRoomQuota
 }
 
-// ExpectRoomIDParam2 sets up expected param roomID for AvailabilityRepository.DecrementRoomQuota
-func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) ExpectRoomIDParam2(roomID string) *mAvailabilityRepositoryMockDecrementRoomQuota {
+// ExpectRoomIDParam3 sets up expected param roomID for AvailabilityRepository.DecrementRoomQuota
+func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) ExpectRoomIDParam3(roomID string) *mAvailabilityRepositoryMockDecrementRoomQuota {
 	if mmDecrementRoomQuota.mock.funcDecrementRoomQuota != nil {
 		mmDecrementRoomQuota.mock.t.Fatalf("AvailabilityRepositoryMock.DecrementRoomQuota mock is already set by Set")
 	}
@@ -185,8 +212,8 @@ func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Expec
 	return mmDecrementRoomQuota
 }
 
-// ExpectDateParam3 sets up expected param date for AvailabilityRepository.DecrementRoomQuota
-func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) ExpectDateParam3(date []time.Time) *mAvailabilityRepositoryMockDecrementRoomQuota {
+// ExpectDateParam4 sets up expected param date for AvailabilityRepository.DecrementRoomQuota
+func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) ExpectDateParam4(date []time.Time) *mAvailabilityRepositoryMockDecrementRoomQuota {
 	if mmDecrementRoomQuota.mock.funcDecrementRoomQuota != nil {
 		mmDecrementRoomQuota.mock.t.Fatalf("AvailabilityRepositoryMock.DecrementRoomQuota mock is already set by Set")
 	}
@@ -209,7 +236,7 @@ func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Expec
 }
 
 // Inspect accepts an inspector function that has same arguments as the AvailabilityRepository.DecrementRoomQuota
-func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Inspect(f func(hotelID string, roomID string, date []time.Time)) *mAvailabilityRepositoryMockDecrementRoomQuota {
+func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Inspect(f func(ctx context.Context, hotelID string, roomID string, date []time.Time)) *mAvailabilityRepositoryMockDecrementRoomQuota {
 	if mmDecrementRoomQuota.mock.inspectFuncDecrementRoomQuota != nil {
 		mmDecrementRoomQuota.mock.t.Fatalf("Inspect function is already set for AvailabilityRepositoryMock.DecrementRoomQuota")
 	}
@@ -234,7 +261,7 @@ func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Retur
 }
 
 // Set uses given function f to mock the AvailabilityRepository.DecrementRoomQuota method
-func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Set(f func(hotelID string, roomID string, date []time.Time) (err error)) *AvailabilityRepositoryMock {
+func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Set(f func(ctx context.Context, hotelID string, roomID string, date []time.Time) (err error)) *AvailabilityRepositoryMock {
 	if mmDecrementRoomQuota.defaultExpectation != nil {
 		mmDecrementRoomQuota.mock.t.Fatalf("Default expectation is already set for the AvailabilityRepository.DecrementRoomQuota method")
 	}
@@ -250,14 +277,14 @@ func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) Set(f
 
 // When sets expectation for the AvailabilityRepository.DecrementRoomQuota which will trigger the result defined by the following
 // Then helper
-func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) When(hotelID string, roomID string, date []time.Time) *AvailabilityRepositoryMockDecrementRoomQuotaExpectation {
+func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) When(ctx context.Context, hotelID string, roomID string, date []time.Time) *AvailabilityRepositoryMockDecrementRoomQuotaExpectation {
 	if mmDecrementRoomQuota.mock.funcDecrementRoomQuota != nil {
 		mmDecrementRoomQuota.mock.t.Fatalf("AvailabilityRepositoryMock.DecrementRoomQuota mock is already set by Set")
 	}
 
 	expectation := &AvailabilityRepositoryMockDecrementRoomQuotaExpectation{
 		mock:               mmDecrementRoomQuota.mock,
-		params:             &AvailabilityRepositoryMockDecrementRoomQuotaParams{hotelID, roomID, date},
+		params:             &AvailabilityRepositoryMockDecrementRoomQuotaParams{ctx, hotelID, roomID, date},
 		expectationOrigins: AvailabilityRepositoryMockDecrementRoomQuotaExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmDecrementRoomQuota.expectations = append(mmDecrementRoomQuota.expectations, expectation)
@@ -291,18 +318,18 @@ func (mmDecrementRoomQuota *mAvailabilityRepositoryMockDecrementRoomQuota) invoc
 	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
 }
 
-// DecrementRoomQuota implements mm_repository.AvailabilityRepository
-func (mmDecrementRoomQuota *AvailabilityRepositoryMock) DecrementRoomQuota(hotelID string, roomID string, date []time.Time) (err error) {
+// DecrementRoomQuota implements mm_service.AvailabilityRepository
+func (mmDecrementRoomQuota *AvailabilityRepositoryMock) DecrementRoomQuota(ctx context.Context, hotelID string, roomID string, date []time.Time) (err error) {
 	mm_atomic.AddUint64(&mmDecrementRoomQuota.beforeDecrementRoomQuotaCounter, 1)
 	defer mm_atomic.AddUint64(&mmDecrementRoomQuota.afterDecrementRoomQuotaCounter, 1)
 
 	mmDecrementRoomQuota.t.Helper()
 
 	if mmDecrementRoomQuota.inspectFuncDecrementRoomQuota != nil {
-		mmDecrementRoomQuota.inspectFuncDecrementRoomQuota(hotelID, roomID, date)
+		mmDecrementRoomQuota.inspectFuncDecrementRoomQuota(ctx, hotelID, roomID, date)
 	}
 
-	mm_params := AvailabilityRepositoryMockDecrementRoomQuotaParams{hotelID, roomID, date}
+	mm_params := AvailabilityRepositoryMockDecrementRoomQuotaParams{ctx, hotelID, roomID, date}
 
 	// Record call args
 	mmDecrementRoomQuota.DecrementRoomQuotaMock.mutex.Lock()
@@ -321,9 +348,14 @@ func (mmDecrementRoomQuota *AvailabilityRepositoryMock) DecrementRoomQuota(hotel
 		mm_want := mmDecrementRoomQuota.DecrementRoomQuotaMock.defaultExpectation.params
 		mm_want_ptrs := mmDecrementRoomQuota.DecrementRoomQuotaMock.defaultExpectation.paramPtrs
 
-		mm_got := AvailabilityRepositoryMockDecrementRoomQuotaParams{hotelID, roomID, date}
+		mm_got := AvailabilityRepositoryMockDecrementRoomQuotaParams{ctx, hotelID, roomID, date}
 
 		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmDecrementRoomQuota.t.Errorf("AvailabilityRepositoryMock.DecrementRoomQuota got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDecrementRoomQuota.DecrementRoomQuotaMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
 
 			if mm_want_ptrs.hotelID != nil && !minimock.Equal(*mm_want_ptrs.hotelID, mm_got.hotelID) {
 				mmDecrementRoomQuota.t.Errorf("AvailabilityRepositoryMock.DecrementRoomQuota got unexpected parameter hotelID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
@@ -352,9 +384,9 @@ func (mmDecrementRoomQuota *AvailabilityRepositoryMock) DecrementRoomQuota(hotel
 		return (*mm_results).err
 	}
 	if mmDecrementRoomQuota.funcDecrementRoomQuota != nil {
-		return mmDecrementRoomQuota.funcDecrementRoomQuota(hotelID, roomID, date)
+		return mmDecrementRoomQuota.funcDecrementRoomQuota(ctx, hotelID, roomID, date)
 	}
-	mmDecrementRoomQuota.t.Fatalf("Unexpected call to AvailabilityRepositoryMock.DecrementRoomQuota. %v %v %v", hotelID, roomID, date)
+	mmDecrementRoomQuota.t.Fatalf("Unexpected call to AvailabilityRepositoryMock.DecrementRoomQuota. %v %v %v %v", ctx, hotelID, roomID, date)
 	return
 }
 
@@ -452,12 +484,14 @@ type AvailabilityRepositoryMockGetRoomAvailabilityExpectation struct {
 
 // AvailabilityRepositoryMockGetRoomAvailabilityParams contains parameters of the AvailabilityRepository.GetRoomAvailability
 type AvailabilityRepositoryMockGetRoomAvailabilityParams struct {
+	ctx     context.Context
 	hotelID string
 	roomID  string
 }
 
 // AvailabilityRepositoryMockGetRoomAvailabilityParamPtrs contains pointers to parameters of the AvailabilityRepository.GetRoomAvailability
 type AvailabilityRepositoryMockGetRoomAvailabilityParamPtrs struct {
+	ctx     *context.Context
 	hotelID *string
 	roomID  *string
 }
@@ -471,6 +505,7 @@ type AvailabilityRepositoryMockGetRoomAvailabilityResults struct {
 // AvailabilityRepositoryMockGetRoomAvailabilityOrigins contains origins of expectations of the AvailabilityRepository.GetRoomAvailability
 type AvailabilityRepositoryMockGetRoomAvailabilityExpectationOrigins struct {
 	origin        string
+	originCtx     string
 	originHotelID string
 	originRoomID  string
 }
@@ -486,7 +521,7 @@ func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) Opt
 }
 
 // Expect sets up expected params for AvailabilityRepository.GetRoomAvailability
-func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) Expect(hotelID string, roomID string) *mAvailabilityRepositoryMockGetRoomAvailability {
+func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) Expect(ctx context.Context, hotelID string, roomID string) *mAvailabilityRepositoryMockGetRoomAvailability {
 	if mmGetRoomAvailability.mock.funcGetRoomAvailability != nil {
 		mmGetRoomAvailability.mock.t.Fatalf("AvailabilityRepositoryMock.GetRoomAvailability mock is already set by Set")
 	}
@@ -499,7 +534,7 @@ func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) Exp
 		mmGetRoomAvailability.mock.t.Fatalf("AvailabilityRepositoryMock.GetRoomAvailability mock is already set by ExpectParams functions")
 	}
 
-	mmGetRoomAvailability.defaultExpectation.params = &AvailabilityRepositoryMockGetRoomAvailabilityParams{hotelID, roomID}
+	mmGetRoomAvailability.defaultExpectation.params = &AvailabilityRepositoryMockGetRoomAvailabilityParams{ctx, hotelID, roomID}
 	mmGetRoomAvailability.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmGetRoomAvailability.expectations {
 		if minimock.Equal(e.params, mmGetRoomAvailability.defaultExpectation.params) {
@@ -510,8 +545,31 @@ func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) Exp
 	return mmGetRoomAvailability
 }
 
-// ExpectHotelIDParam1 sets up expected param hotelID for AvailabilityRepository.GetRoomAvailability
-func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) ExpectHotelIDParam1(hotelID string) *mAvailabilityRepositoryMockGetRoomAvailability {
+// ExpectCtxParam1 sets up expected param ctx for AvailabilityRepository.GetRoomAvailability
+func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) ExpectCtxParam1(ctx context.Context) *mAvailabilityRepositoryMockGetRoomAvailability {
+	if mmGetRoomAvailability.mock.funcGetRoomAvailability != nil {
+		mmGetRoomAvailability.mock.t.Fatalf("AvailabilityRepositoryMock.GetRoomAvailability mock is already set by Set")
+	}
+
+	if mmGetRoomAvailability.defaultExpectation == nil {
+		mmGetRoomAvailability.defaultExpectation = &AvailabilityRepositoryMockGetRoomAvailabilityExpectation{}
+	}
+
+	if mmGetRoomAvailability.defaultExpectation.params != nil {
+		mmGetRoomAvailability.mock.t.Fatalf("AvailabilityRepositoryMock.GetRoomAvailability mock is already set by Expect")
+	}
+
+	if mmGetRoomAvailability.defaultExpectation.paramPtrs == nil {
+		mmGetRoomAvailability.defaultExpectation.paramPtrs = &AvailabilityRepositoryMockGetRoomAvailabilityParamPtrs{}
+	}
+	mmGetRoomAvailability.defaultExpectation.paramPtrs.ctx = &ctx
+	mmGetRoomAvailability.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmGetRoomAvailability
+}
+
+// ExpectHotelIDParam2 sets up expected param hotelID for AvailabilityRepository.GetRoomAvailability
+func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) ExpectHotelIDParam2(hotelID string) *mAvailabilityRepositoryMockGetRoomAvailability {
 	if mmGetRoomAvailability.mock.funcGetRoomAvailability != nil {
 		mmGetRoomAvailability.mock.t.Fatalf("AvailabilityRepositoryMock.GetRoomAvailability mock is already set by Set")
 	}
@@ -533,8 +591,8 @@ func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) Exp
 	return mmGetRoomAvailability
 }
 
-// ExpectRoomIDParam2 sets up expected param roomID for AvailabilityRepository.GetRoomAvailability
-func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) ExpectRoomIDParam2(roomID string) *mAvailabilityRepositoryMockGetRoomAvailability {
+// ExpectRoomIDParam3 sets up expected param roomID for AvailabilityRepository.GetRoomAvailability
+func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) ExpectRoomIDParam3(roomID string) *mAvailabilityRepositoryMockGetRoomAvailability {
 	if mmGetRoomAvailability.mock.funcGetRoomAvailability != nil {
 		mmGetRoomAvailability.mock.t.Fatalf("AvailabilityRepositoryMock.GetRoomAvailability mock is already set by Set")
 	}
@@ -557,7 +615,7 @@ func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) Exp
 }
 
 // Inspect accepts an inspector function that has same arguments as the AvailabilityRepository.GetRoomAvailability
-func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) Inspect(f func(hotelID string, roomID string)) *mAvailabilityRepositoryMockGetRoomAvailability {
+func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) Inspect(f func(ctx context.Context, hotelID string, roomID string)) *mAvailabilityRepositoryMockGetRoomAvailability {
 	if mmGetRoomAvailability.mock.inspectFuncGetRoomAvailability != nil {
 		mmGetRoomAvailability.mock.t.Fatalf("Inspect function is already set for AvailabilityRepositoryMock.GetRoomAvailability")
 	}
@@ -582,7 +640,7 @@ func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) Ret
 }
 
 // Set uses given function f to mock the AvailabilityRepository.GetRoomAvailability method
-func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) Set(f func(hotelID string, roomID string) (d1 model.DateQuotaMap, err error)) *AvailabilityRepositoryMock {
+func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) Set(f func(ctx context.Context, hotelID string, roomID string) (d1 model.DateQuotaMap, err error)) *AvailabilityRepositoryMock {
 	if mmGetRoomAvailability.defaultExpectation != nil {
 		mmGetRoomAvailability.mock.t.Fatalf("Default expectation is already set for the AvailabilityRepository.GetRoomAvailability method")
 	}
@@ -598,14 +656,14 @@ func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) Set
 
 // When sets expectation for the AvailabilityRepository.GetRoomAvailability which will trigger the result defined by the following
 // Then helper
-func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) When(hotelID string, roomID string) *AvailabilityRepositoryMockGetRoomAvailabilityExpectation {
+func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) When(ctx context.Context, hotelID string, roomID string) *AvailabilityRepositoryMockGetRoomAvailabilityExpectation {
 	if mmGetRoomAvailability.mock.funcGetRoomAvailability != nil {
 		mmGetRoomAvailability.mock.t.Fatalf("AvailabilityRepositoryMock.GetRoomAvailability mock is already set by Set")
 	}
 
 	expectation := &AvailabilityRepositoryMockGetRoomAvailabilityExpectation{
 		mock:               mmGetRoomAvailability.mock,
-		params:             &AvailabilityRepositoryMockGetRoomAvailabilityParams{hotelID, roomID},
+		params:             &AvailabilityRepositoryMockGetRoomAvailabilityParams{ctx, hotelID, roomID},
 		expectationOrigins: AvailabilityRepositoryMockGetRoomAvailabilityExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmGetRoomAvailability.expectations = append(mmGetRoomAvailability.expectations, expectation)
@@ -639,18 +697,18 @@ func (mmGetRoomAvailability *mAvailabilityRepositoryMockGetRoomAvailability) inv
 	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
 }
 
-// GetRoomAvailability implements mm_repository.AvailabilityRepository
-func (mmGetRoomAvailability *AvailabilityRepositoryMock) GetRoomAvailability(hotelID string, roomID string) (d1 model.DateQuotaMap, err error) {
+// GetRoomAvailability implements mm_service.AvailabilityRepository
+func (mmGetRoomAvailability *AvailabilityRepositoryMock) GetRoomAvailability(ctx context.Context, hotelID string, roomID string) (d1 model.DateQuotaMap, err error) {
 	mm_atomic.AddUint64(&mmGetRoomAvailability.beforeGetRoomAvailabilityCounter, 1)
 	defer mm_atomic.AddUint64(&mmGetRoomAvailability.afterGetRoomAvailabilityCounter, 1)
 
 	mmGetRoomAvailability.t.Helper()
 
 	if mmGetRoomAvailability.inspectFuncGetRoomAvailability != nil {
-		mmGetRoomAvailability.inspectFuncGetRoomAvailability(hotelID, roomID)
+		mmGetRoomAvailability.inspectFuncGetRoomAvailability(ctx, hotelID, roomID)
 	}
 
-	mm_params := AvailabilityRepositoryMockGetRoomAvailabilityParams{hotelID, roomID}
+	mm_params := AvailabilityRepositoryMockGetRoomAvailabilityParams{ctx, hotelID, roomID}
 
 	// Record call args
 	mmGetRoomAvailability.GetRoomAvailabilityMock.mutex.Lock()
@@ -669,9 +727,14 @@ func (mmGetRoomAvailability *AvailabilityRepositoryMock) GetRoomAvailability(hot
 		mm_want := mmGetRoomAvailability.GetRoomAvailabilityMock.defaultExpectation.params
 		mm_want_ptrs := mmGetRoomAvailability.GetRoomAvailabilityMock.defaultExpectation.paramPtrs
 
-		mm_got := AvailabilityRepositoryMockGetRoomAvailabilityParams{hotelID, roomID}
+		mm_got := AvailabilityRepositoryMockGetRoomAvailabilityParams{ctx, hotelID, roomID}
 
 		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmGetRoomAvailability.t.Errorf("AvailabilityRepositoryMock.GetRoomAvailability got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmGetRoomAvailability.GetRoomAvailabilityMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
 
 			if mm_want_ptrs.hotelID != nil && !minimock.Equal(*mm_want_ptrs.hotelID, mm_got.hotelID) {
 				mmGetRoomAvailability.t.Errorf("AvailabilityRepositoryMock.GetRoomAvailability got unexpected parameter hotelID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
@@ -695,9 +758,9 @@ func (mmGetRoomAvailability *AvailabilityRepositoryMock) GetRoomAvailability(hot
 		return (*mm_results).d1, (*mm_results).err
 	}
 	if mmGetRoomAvailability.funcGetRoomAvailability != nil {
-		return mmGetRoomAvailability.funcGetRoomAvailability(hotelID, roomID)
+		return mmGetRoomAvailability.funcGetRoomAvailability(ctx, hotelID, roomID)
 	}
-	mmGetRoomAvailability.t.Fatalf("Unexpected call to AvailabilityRepositoryMock.GetRoomAvailability. %v %v", hotelID, roomID)
+	mmGetRoomAvailability.t.Fatalf("Unexpected call to AvailabilityRepositoryMock.GetRoomAvailability. %v %v %v", ctx, hotelID, roomID)
 	return
 }
 

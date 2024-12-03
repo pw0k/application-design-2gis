@@ -2,6 +2,7 @@ package handler
 
 import (
 	"application-design-test/internal/service"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,7 +15,7 @@ import (
 )
 
 type BookingService interface {
-	CreateOrder(order *model.Order) error
+	CreateOrder(ctx context.Context, order *model.Order) error
 }
 
 type OrderHandler struct {
@@ -34,6 +35,7 @@ func (h *OrderHandler) RegisterRoutes(r chi.Router) {
 }
 
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var order model.Order
 	if err := json.NewDecoder(r.Body).Decode(&order); err != nil {
 		slog.Error("Incorrect request", "error", err)
@@ -47,7 +49,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.BookingService.CreateOrder(&order); err != nil {
+	if err := h.BookingService.CreateOrder(ctx, &order); err != nil {
 		switch {
 		case errors.Is(err, service.ErrQuotaUnavailable):
 			http.Error(w, "Quota unavailable error", http.StatusConflict)

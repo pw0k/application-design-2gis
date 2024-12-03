@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -37,7 +38,7 @@ func NewInMemoryAvailabilityRepository() *InMemoryAvailabilityRepository {
 	}
 }
 
-func (repo *InMemoryAvailabilityRepository) GetRoomAvailability(hotelID, roomID string) (model.DateQuotaMap, error) {
+func (repo *InMemoryAvailabilityRepository) GetRoomAvailability(_ context.Context, hotelID, roomID string) (model.DateQuotaMap, error) {
 	repo.mu.RLock()
 	defer repo.mu.RUnlock()
 
@@ -49,7 +50,7 @@ func (repo *InMemoryAvailabilityRepository) GetRoomAvailability(hotelID, roomID 
 	return dateQuotaMap, nil
 }
 
-func (repo *InMemoryAvailabilityRepository) DecrementRoomQuota(hotelID, roomID string, bookingDate []time.Time) error {
+func (repo *InMemoryAvailabilityRepository) DecrementRoomQuota(_ context.Context, hotelID, roomID string, bookingDate []time.Time) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 

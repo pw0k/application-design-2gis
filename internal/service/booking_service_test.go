@@ -3,6 +3,7 @@ package service
 import (
 	"application-design-test/internal/model"
 	"application-design-test/internal/repository/mocks"
+	"context"
 	"testing"
 	"time"
 
@@ -86,20 +87,21 @@ func TestBookingService_CreateOrder(t *testing.T) {
 		time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC):   1,
 	}
 
+	ctx := context.Background()
 	mockOrderRepo := mocks.NewOrderRepositoryMock(t)
 	mockAvailabilityRepo := mocks.NewAvailabilityRepositoryMock(t)
 	mockAvailabilityRepo.GetRoomAvailabilityMock.
-		When(order.HotelID, order.RoomID).
+		When(ctx, order.HotelID, order.RoomID).
 		Then(initialQuota, nil)
 	mockOrderRepo.SaveOrderMock.
-		When(order).
+		When(ctx, order).
 		Then(nil)
 	mockAvailabilityRepo.DecrementRoomQuotaMock.
-		When(order.HotelID, order.RoomID, bookingInterval).
+		When(ctx, order.HotelID, order.RoomID, bookingInterval).
 		Then(nil)
 	service := NewBookingService(mockOrderRepo, mockAvailabilityRepo)
 
-	err := service.CreateOrder(order)
+	err := service.CreateOrder(ctx, order)
 
 	assert.NoError(t, err, "CreateOrder shouldn't return error")
 	assert.True(t, mockAvailabilityRepo.MinimockGetRoomAvailabilityDone(), "GetRoomAvailability должен быть вызван один раз")
@@ -123,15 +125,16 @@ func TestBookingService_CreateOrder_QuotaError(t *testing.T) {
 		time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC):   0,
 	}
 
+	ctx := context.Background()
 	mockOrderRepo := mocks.NewOrderRepositoryMock(t)
 	mockAvailabilityRepo := mocks.NewAvailabilityRepositoryMock(t)
 	mockAvailabilityRepo.
 		GetRoomAvailabilityMock.
-		When(order.HotelID, order.RoomID).
+		When(ctx, order.HotelID, order.RoomID).
 		Then(insufficientQuota, nil)
 	service := NewBookingService(mockOrderRepo, mockAvailabilityRepo)
 
-	err := service.CreateOrder(order)
+	err := service.CreateOrder(ctx, order)
 
 	assert.Error(t, err, "CreateOrder should return error")
 	assert.Contains(t, err.Error(), "qota is unavailable for specific date")
