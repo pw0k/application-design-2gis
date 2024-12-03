@@ -1,9 +1,12 @@
 package setup
 
-import "application-design-test/internal/service"
+import (
+	"application-design-test/internal/handler"
+	"application-design-test/internal/service"
+)
 
 type Services struct {
-	BookingService service.BookingService
+	BookingService handler.BookingService
 }
 
 func InitServices(repos *Repositories) *Services {

@@ -1,21 +1,27 @@
 package handler
 
 import (
-	//"application-design-test/internal/handler/dto"
-	"application-design-test/internal/model"
 	"application-design-test/internal/service"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+
+	"application-design-test/internal/model"
 )
 
-type OrderHandler struct {
-	BookingService service.BookingService
+type BookingService interface {
+	CreateOrder(order *model.Order) error
 }
 
-func NewOrderHandler(bookingService service.BookingService) *OrderHandler {
+type OrderHandler struct {
+	BookingService BookingService
+}
+
+func NewOrderHandler(bookingService BookingService) *OrderHandler {
 	return &OrderHandler{
 		BookingService: bookingService,
 	}
@@ -30,15 +36,26 @@ func (h *OrderHandler) RegisterRoutes(r chi.Router) {
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	var order model.Order
 	if err := json.NewDecoder(r.Body).Decode(&order); err != nil {
-		slog.Error("Некорректный запрос", "ошибка", err)
-		http.Error(w, "Некорректный запрос", http.StatusBadRequest)
+		slog.Error("Incorrect request", "error", err)
+		http.Error(w, "Incorrect request", http.StatusBadRequest)
+		return
+	}
+
+	if err := validate(order); err != nil {
+		slog.Error("Incorrect request", "error", err)
+		http.Error(w, "Incorrect request", http.StatusBadRequest)
 		return
 	}
 
 	if err := h.BookingService.CreateOrder(&order); err != nil {
-		slog.Error("Не удалось оформить", "ошибка", err)
-		//todo: здесь по хорошему надо выдавать разные коды ошибок
-		http.Error(w, err.Error(), http.StatusTeapot)
+		switch {
+		case errors.Is(err, service.ErrQuotaUnavailable):
+			http.Error(w, "Quota unavailable error", http.StatusConflict)
+			slog.Error("Quota unavailable ", "error", err)
+		default:
+			http.Error(w, "CreateOrder error", http.StatusInternalServerError)
+			slog.Error("CreateOrder error", "error", err)
+		}
 		return
 	}
 
@@ -48,4 +65,11 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+}
+
+func validate(order model.Order) error {
+	if order.From.After(order.To) {
+		return fmt.Errorf("incorrect request, order.from is after order.to")
+	}
+	return nil
 }

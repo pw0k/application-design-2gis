@@ -10,11 +10,12 @@
 package main
 
 import (
-	"application-design-test/cmd/hotel-booking/setup"
 	"github.com/go-chi/chi/v5"
 	"log/slog"
 	"net/http"
 	"os"
+
+	"application-design-test/cmd/hotel-booking/setup"
 )
 
 func main() {
@@ -26,10 +27,10 @@ func main() {
 
 	repos := setup.InitRepositories()
 	services := setup.InitServices(repos)
-	//r.Use(middleware.Recoverer)
 	setup.InitHandlers(router, services)
 
 	slog.Info("Server listening localhost:80")
+	//todo: отдельная горутина для graceful shutdown
 	if err := http.ListenAndServe(":80", router); err != nil {
 		slog.Error("Server failed", "error", err)
 		os.Exit(1)

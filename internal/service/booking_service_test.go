@@ -21,7 +21,7 @@ func TestDaysBetween(t *testing.T) {
 			name:     "same day",
 			from:     time.Date(2024, 4, 27, 0, 0, 0, 0, time.UTC),
 			to:       time.Date(2024, 4, 27, 0, 0, 0, 0, time.UTC),
-			expected: []time.Time{NormalizeDate(time.Date(2024, 4, 27, 0, 0, 0, 0, time.UTC))},
+			expected: []time.Time{normalizeDate(time.Date(2024, 4, 27, 0, 0, 0, 0, time.UTC))},
 		},
 		{
 			name:     "from after to",
@@ -34,9 +34,9 @@ func TestDaysBetween(t *testing.T) {
 			from: time.Date(2023, 12, 31, 23, 0, 0, 0, time.UTC),
 			to:   time.Date(2024, 1, 2, 1, 0, 0, 0, time.UTC),
 			expected: []time.Time{
-				NormalizeDate(time.Date(2023, 12, 31, 23, 0, 0, 0, time.UTC)),
-				NormalizeDate(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
-				NormalizeDate(time.Date(2024, 1, 2, 1, 0, 0, 0, time.UTC)),
+				normalizeDate(time.Date(2023, 12, 31, 23, 0, 0, 0, time.UTC)),
+				normalizeDate(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
+				normalizeDate(time.Date(2024, 1, 2, 1, 0, 0, 0, time.UTC)),
 			},
 		},
 	}
@@ -45,7 +45,7 @@ func TestDaysBetween(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			result := DaysBetween(tt.from, tt.to)
+			result := daysBetween(tt.from, tt.to)
 
 			if tt.expected == nil {
 				assert.Nil(t, result, "DaysBetween(%v, %v) должно возвращать nil", tt.from, tt.to)
@@ -64,7 +64,7 @@ func TestNormalizeDate(t *testing.T) {
 	input := time.Date(2024, 4, 27, 15, 30, 45, 123456789, time.UTC)
 	expected := time.Date(2024, 4, 27, 0, 0, 0, 0, time.UTC)
 
-	result := NormalizeDate(input)
+	result := normalizeDate(input)
 
 	assert.Equal(t, expected, result, "NormalizeDate(%v) должно возвращать %v, получено %v", input, expected, result)
 }
@@ -78,7 +78,7 @@ func TestBookingService_CreateOrder(t *testing.T) {
 		From:    time.Date(2023, 12, 30, 0, 0, 0, 0, time.UTC),
 		To:      time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC),
 	}
-	bookingInterval := DaysBetween(order.From, order.To)
+	bookingInterval := daysBetween(order.From, order.To)
 	initialQuota := model.DateQuotaMap{
 		time.Date(2023, 12, 30, 0, 0, 0, 0, time.UTC): 2,
 		time.Date(2023, 12, 31, 0, 0, 0, 0, time.UTC): 2,
@@ -101,7 +101,7 @@ func TestBookingService_CreateOrder(t *testing.T) {
 
 	err := service.CreateOrder(order)
 
-	assert.NoError(t, err, "CreateOrder не должен возвращать ошибку для валидного заказа")
+	assert.NoError(t, err, "CreateOrder shouldn't return error")
 	assert.True(t, mockAvailabilityRepo.MinimockGetRoomAvailabilityDone(), "GetRoomAvailability должен быть вызван один раз")
 	assert.True(t, mockOrderRepo.MinimockSaveOrderDone(), "SaveOrder должен быть вызван один раз")
 	assert.True(t, mockAvailabilityRepo.MinimockDecrementRoomQuotaDone(), "DecrementRoomQuota должен быть вызван один раз")
@@ -133,8 +133,8 @@ func TestBookingService_CreateOrder_QuotaError(t *testing.T) {
 
 	err := service.CreateOrder(order)
 
-	assert.Error(t, err, "CreateOrder должен возвращать ошибку при недостаточной квоте")
-	assert.Contains(t, err.Error(), "номер не доступен в выбранные даты")
+	assert.Error(t, err, "CreateOrder should return error")
+	assert.Contains(t, err.Error(), "qota is unavailable for specific date")
 	assert.True(t, mockAvailabilityRepo.MinimockGetRoomAvailabilityDone(), "GetRoomAvailability должен быть вызван один раз")
 	assert.Equal(t, uint64(0), mockOrderRepo.SaveOrderAfterCounter(), "SaveOrder не должен вызываться при недостаточной квоте")
 	assert.Equal(t, uint64(0), mockAvailabilityRepo.DecrementRoomQuotaAfterCounter(), "DecrementRoomQuota не должен вызываться при недостаточной квоте")

@@ -2,11 +2,12 @@ package setup
 
 import (
 	"application-design-test/internal/repository"
+	"application-design-test/internal/service"
 )
 
 type Repositories struct {
-	OrderRepo        repository.OrderRepository
-	AvailabilityRepo repository.AvailabilityRepository
+	OrderRepo        service.OrderRepository
+	AvailabilityRepo service.AvailabilityRepository
 }
 
 func InitRepositories() *Repositories {

@@ -1,26 +1,23 @@
 package repository
 
 import (
-	"application-design-test/internal/model"
 	"sync"
+
+	"application-design-test/internal/model"
 )
 
-type OrderRepository interface {
-	SaveOrder(order *model.Order) error
-}
-
-type inMemoryOrderRepository struct {
+type InMemoryOrderRepository struct {
 	orders []model.Order
 	mu     sync.Mutex
 }
 
-func NewInMemoryOrderRepository() OrderRepository {
-	return &inMemoryOrderRepository{
+func NewInMemoryOrderRepository() *InMemoryOrderRepository {
+	return &InMemoryOrderRepository{
 		orders: make([]model.Order, 0),
 	}
 }
 
-func (repo *inMemoryOrderRepository) SaveOrder(order *model.Order) error {
+func (repo *InMemoryOrderRepository) SaveOrder(order *model.Order) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 

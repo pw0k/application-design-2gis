@@ -1,24 +1,20 @@
 package repository
 
 import (
-	"application-design-test/internal/model"
 	"fmt"
 	"sync"
 	"time"
+
+	"application-design-test/internal/model"
 )
 
-type AvailabilityRepository interface {
-	GetRoomAvailability(hotelID, roomID string) (model.DateQuotaMap, error)
-	DecrementRoomQuota(hotelID, roomID string, date []time.Time) error
-}
-
-type inMemoryAvailabilityRepository struct {
+type InMemoryAvailabilityRepository struct {
 	availabilityMap map[model.HotelRoomKey]model.DateQuotaMap
-	mu              sync.Mutex
+	mu              sync.RWMutex
 }
 
-func NewInMemoryAvailabilityRepository() AvailabilityRepository {
-	InitialAvailability := []model.RoomAvailability{
+func NewInMemoryAvailabilityRepository() *InMemoryAvailabilityRepository {
+	initialAvailability := []model.RoomAvailability{
 		{"reddison", "lux", newDate(2024, 1, 1), 1},
 		{"reddison", "lux", newDate(2024, 1, 2), 1},
 		{"reddison", "lux", newDate(2024, 1, 3), 1},
@@ -27,8 +23,8 @@ func NewInMemoryAvailabilityRepository() AvailabilityRepository {
 	}
 
 	roomAvailabilityMap := make(map[model.HotelRoomKey]model.DateQuotaMap)
-	for _, avail := range InitialAvailability {
-		key := model.HotelRoomKey{HotelID: avail.HotelID, RoomID: avail.RoomID}
+	for _, avail := range initialAvailability {
+		key := model.NewHotelRoomKey(avail.HotelID, avail.RoomID)
 		_, ok := roomAvailabilityMap[key]
 		if !ok {
 			roomAvailabilityMap[key] = model.DateQuotaMap{}
@@ -36,37 +32,36 @@ func NewInMemoryAvailabilityRepository() AvailabilityRepository {
 		roomAvailabilityMap[key][avail.Date] = avail.Quota
 	}
 
-	return &inMemoryAvailabilityRepository{
+	return &InMemoryAvailabilityRepository{
 		availabilityMap: roomAvailabilityMap,
 	}
 }
 
-func (repo *inMemoryAvailabilityRepository) GetRoomAvailability(hotelID, roomID string) (model.DateQuotaMap, error) {
-	repo.mu.Lock()
-	defer repo.mu.Unlock()
+func (repo *InMemoryAvailabilityRepository) GetRoomAvailability(hotelID, roomID string) (model.DateQuotaMap, error) {
+	repo.mu.RLock()
+	defer repo.mu.RUnlock()
 
-	hotelRoomKey := model.HotelRoomKey{HotelID: hotelID, RoomID: roomID}
+	hotelRoomKey := model.NewHotelRoomKey(hotelID, roomID)
 	dateQuotaMap, ok := repo.availabilityMap[hotelRoomKey]
 	if !ok {
-		return dateQuotaMap, fmt.Errorf("бронь для номера не доступна, hotelID %v, roomID %v", hotelID, roomID)
+		return dateQuotaMap, fmt.Errorf("dateQuotaMap is unavailable, hotelID %v, roomID %v", hotelID, roomID)
 	}
-	//todo: передавать копию ?
 	return dateQuotaMap, nil
 }
 
-func (repo *inMemoryAvailabilityRepository) DecrementRoomQuota(hotelID, roomID string, bookingDate []time.Time) error {
+func (repo *InMemoryAvailabilityRepository) DecrementRoomQuota(hotelID, roomID string, bookingDate []time.Time) error {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
-	hotelRoomKey := model.HotelRoomKey{HotelID: hotelID, RoomID: roomID}
+	hotelRoomKey := model.NewHotelRoomKey(hotelID, roomID)
 	dateQuotaMap, ok := repo.availabilityMap[hotelRoomKey]
 	if !ok {
-		return fmt.Errorf("бронь для номера не доступна, hotelID %v, roomID %v", hotelID, roomID)
+		return fmt.Errorf("dateQuotaMap is unavailable, hotelID %v, roomID %v", hotelID, roomID)
 	}
 	for _, currDate := range bookingDate {
 		quota, ok := dateQuotaMap[currDate]
 		if !ok || quota < 1 {
-			return fmt.Errorf("бронь на конкретную дату для номера не доступна, hotelID %v, roomID %v, currDate %v, quota %v", hotelID, roomID, currDate, quota)
+			return fmt.Errorf("qota is unavailable for specific date, hotelID %v, roomID %v, currDate %v, quota %v", hotelID, roomID, currDate, quota)
 		}
 		dateQuotaMap[currDate] = quota - 1
 	}

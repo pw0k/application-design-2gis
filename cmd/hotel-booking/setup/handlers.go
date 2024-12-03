@@ -1,8 +1,9 @@
 package setup
 
 import (
-	"application-design-test/internal/handler"
 	"github.com/go-chi/chi/v5"
+
+	"application-design-test/internal/handler"
 )
 
 func InitHandlers(router *chi.Mux, services *Services) {

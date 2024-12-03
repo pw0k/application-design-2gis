@@ -15,3 +15,9 @@ type HotelRoomKey struct {
 	HotelID string
 	RoomID  string
 }
+
+func NewHotelRoomKey(hotelID string, roomID string) HotelRoomKey {
+	return HotelRoomKey{
+		HotelID: hotelID,
+		RoomID:  roomID}
+}
